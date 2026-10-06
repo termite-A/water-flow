@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Water Flow Controller
 
 Administrator-only water-level monitoring and irrigation gateway management. The frontend is React, TypeScript, Vite, and Tailwind CSS. The backend is Express/TypeScript with PostgreSQL, MQTT, authenticated WebSockets, and device telemetry validation.
@@ -81,3 +82,6 @@ npm run build
 cd ..\backend
 npm run build
 ```
+=======
+# water-flow
+>>>>>>> 987e0459867a47bcbe5e84dee8f7e7995ac9857d
