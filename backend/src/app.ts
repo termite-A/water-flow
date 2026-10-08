@@ -18,7 +18,7 @@ import { createTelemetryRouter } from './routes/telemetry.routes.js'
 const app = express()
 const port = Number(process.env.PORT ?? 4000)
 const database = process.env.DATABASE_URL
-const pool = database ? new Pool({ connectionString: database, max: 10 }) : null
+const pool = database ? new Pool({ connectionString: database, max: 3, ssl: { rejectUnauthorized: false } }) : null
 const frontendOrigin = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'
 let realtime: RealtimeHub | null = null
 
