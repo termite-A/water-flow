@@ -10,6 +10,7 @@ import { DeviceView } from './pages/DevicePage'
 import { SettingsView } from './pages/SettingsPage'
 import { LoginPage } from './pages/LoginPage'
 import './App.css'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 const navigation: { id: ViewName; title: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', title: 'Dashboard', icon: LayoutDashboard },
@@ -25,6 +26,7 @@ const navigation: { id: ViewName; title: string; icon: typeof LayoutDashboard }[
 
 
 function App() {
+  const location = useLocation()
   const [admin, setAdmin] = useState<Admin | null>(null)
   const [checkingSession, setCheckingSession] = useState(true)
   const [sessionError, setSessionError] = useState('')
@@ -42,14 +44,25 @@ function App() {
   }, [])
 
   if (checkingSession) return <div className="auth-loading"><span className="spinner" /><span>Checking administrator session</span></div>
-  if (!admin) return <LoginPage onLogin={setAdmin} serverMessage={sessionError} />
+
+  if (!admin) {
+    if (location.pathname !== '/login') return <Navigate to="/login" replace />
+    return <LoginPage onLogin={setAdmin} serverMessage={sessionError} />
+  }
+
+  const validPage = navigation.some((item) => location.pathname === '/' + item.id)
+  if (!validPage) return <Navigate to="/dashboard" replace />
+
   return <AdminApplication admin={admin} onLogout={() => setAdmin(null)} onSessionExpired={() => setAdmin(null)} />
 }
 
 
 
 function AdminApplication({ admin, onLogout, onSessionExpired }: { admin: Admin; onLogout: () => void; onSessionExpired: () => void }) {
-  const [view, setView] = useState<ViewName>('dashboard')
+  const location = useLocation()
+const navigate = useNavigate()
+const view = (navigation.find((item) => location.pathname === '/' + item.id)?.id ?? 'dashboard') as ViewName
+const setView = (id: ViewName) => navigate('/' + id)
   const [devices, setDevices] = useState<Device[]>([])
   const [measurements, setMeasurements] = useState<Measurement[]>([])
   const [historyRows, setHistoryRows] = useState<Measurement[]>([])
