@@ -80,7 +80,8 @@ const requireAdmin: RequestHandler = async (request, response, next) => {
     response.locals.admin = admin
     next()
   } catch (error) {
-    next(error)
+    console.error('Administrator session check failed:', error instanceof Error ? error.message : error)
+    response.status(503).json({ error: 'Administrator session service is unavailable.' })
   }
 }
 

@@ -83,7 +83,8 @@ export function createAuthRouter({ pool, databaseRequired, requireAdmin, require
       loginRateLimits.delete(ip)
       response.setHeader('Set-Cookie', setSessionCookie(session.token, session.maxAge))
       response.json({ admin: { adminId: admin.adminId, username: admin.username, email: admin.email } })
-    } catch {
+    } catch (error) {
+      console.error('Administrator sign-in failed:', error instanceof Error ? error.message : error)
       response.status(503).json({ error: 'Administrator sign-in is temporarily unavailable.' })
     }
   })
