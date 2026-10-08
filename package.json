@@ -1,6 +1,24 @@
 {
+  "name": "water-flow",
+  "private": true,
+  "type": "module",
   "dependencies": {
-    "react-router-dom": "^7.18.4"
-    
+    "@supabase/server": "^1.9.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "mqtt": "^5.16.0",
+    "pg": "^8.23.1",
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.3",
+    "@types/pg": "^8.23.1",
+    "@types/ws": "^8.18.2",
+    "typescript": "^7.0.2"
   }
 }

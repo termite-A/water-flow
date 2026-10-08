@@ -21,6 +21,7 @@ const database = process.env.DATABASE_URL
 const pool = database ? new Pool({ connectionString: database, max: 3, ssl: { rejectUnauthorized: false } }) : null
 const frontendOrigin = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'
 let realtime: RealtimeHub | null = null
+let databaseInitialization: Promise<void> | null = null
 
 app.disable('x-powered-by')
 app.use(cors({ origin: frontendOrigin, credentials: true }))
@@ -45,12 +46,24 @@ const telemetrySchema = z.object({
   reading.waterLevel !== undefined || reading.waterLevelPct !== undefined || reading.waterLevelM !== undefined,
   'A raw sensor value or calibrated water level is required.')
 
-function databaseRequired(_request: Parameters<RequestHandler>[0], response: Parameters<RequestHandler>[1], next: Parameters<RequestHandler>[2]) {
+const databaseRequired: RequestHandler = async (_request, response, next) => {
   if (!pool) {
     response.status(503).json({ error: 'Database is not configured. No live data is available.' })
     return
   }
-  next()
+  try {
+    databaseInitialization ??= pool.query('SELECT 1')
+      .then(() => bootstrapAdmin())
+      .catch((error: unknown) => {
+        databaseInitialization = null
+        throw error
+      })
+    await databaseInitialization
+    next()
+  } catch (error) {
+    console.error('Database unavailable or schema not applied:', error instanceof Error ? error.message : error)
+    response.status(503).json({ error: 'Database is unavailable or the required schema has not been applied.' })
+  }
 }
 
 const requireAdmin: RequestHandler = async (request, response, next) => {
@@ -73,7 +86,9 @@ const requireAdmin: RequestHandler = async (request, response, next) => {
 
 const requireSameOrigin: RequestHandler = (request, response, next) => {
   const origin = request.header('origin')
-  if (origin && origin !== frontendOrigin) {
+  const forwardedProtocol = request.header('x-forwarded-proto')?.split(',')[0].trim()
+  const requestOrigin = `${forwardedProtocol || request.protocol}://${request.header('host')}`
+  if (origin && origin !== frontendOrigin && origin !== requestOrigin) {
     response.status(403).json({ error: 'Request origin is not allowed.' })
     return
   }
@@ -612,9 +627,6 @@ if (pool) {
   }, 30000)
   offlineCheck.unref()
 
-  void pool.query('SELECT 1').then(() => bootstrapAdmin()).catch((error) => {
-    console.error('Database unavailable or schema not applied:', error instanceof Error ? error.message : error)
-  })
 }
 
 })

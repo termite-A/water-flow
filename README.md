@@ -40,6 +40,10 @@ npm run dev
 
 The first administrator is created from environment variables only if its username/email is not already present. No credentials are included in this repository.
 
+## Deploy on Vercel
+
+Set the Vercel project Root Directory to the repository root, not `frontend`; the root `vercel.json` builds the frontend and routes `/api/*` requests to the serverless API. Add `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` to the Vercel project's environment variables, then apply the existing database schema before signing in. The first database-backed API request creates the initial administrator when those admin variables are configured. Keep secrets out of the repository. When the frontend and API are served from the same Vercel domain, no `FRONTEND_ORIGIN` override is needed.
+
 ## Device Protocol
 
 The device may POST a reading to `/api/telemetry` with `Authorization: Bearer <DEVICE_API_KEY>`, or publish JSON over MQTT. The Arduino Uno/A7670 sketch uses HTTP(S): it posts telemetry and polls `GET /api/device/commands?deviceId=<device-code>` with the same bearer key. The poll returns a queued gate or mode command; telemetry then echoes `commandId` and the device-reported result. The gateway is confirmed only from that report.
