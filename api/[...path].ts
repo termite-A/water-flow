@@ -1,3 +1,3 @@
-import app from '../backend/src/app.js'
+import handleVercelRequest from '../backend/src/vercel.js'
 
-export default app
+export default handleVercelRequest
