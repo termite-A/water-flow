@@ -10,6 +10,7 @@ type DeviceMessageHandler = (topic: string, payload: unknown) => Promise<void>
 export class RealtimeHub {
   private readonly sockets = new WebSocketServer({ noServer: true })
   private readonly mqttClient: MqttClient | null
+  private lastMqttErrorLoggedAt = 0
 
   constructor(server: Server, pool: Pool, onDeviceMessage: DeviceMessageHandler) {
     server.on('upgrade', (request, socket, head) => {
@@ -57,7 +58,11 @@ export class RealtimeHub {
     this.mqttClient?.on('reconnect', () => this.broadcast({ type: 'mqtt', status: 'reconnecting' }))
     this.mqttClient?.on('offline', () => this.broadcast({ type: 'mqtt', status: 'offline' }))
     this.mqttClient?.on('error', (error) => {
-      console.error('MQTT connection error:', error.message)
+      const now = Date.now()
+      if (now - this.lastMqttErrorLoggedAt >= 60000) {
+        this.lastMqttErrorLoggedAt = now
+        console.error('MQTT connection error; retrying:', error.message || 'No detail provided by client.')
+      }
       this.broadcast({ type: 'mqtt', status: 'error' })
     })
     this.mqttClient?.on('message', (topic, message) => {

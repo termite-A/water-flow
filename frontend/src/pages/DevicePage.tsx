@@ -1,0 +1,8 @@
+import { Radio } from 'lucide-react'
+import type { Device } from '../types'
+import { formatDate } from '../lib/format'
+import { StatusBadge, EmptyPanel } from '../components/Shared'
+
+export function DeviceView({ devices, mqttStatus }: { devices: Device[]; mqttStatus: string }) {
+  return <section className="panel device-panel"><div className="panel-heading"><div><span className="panel-kicker">DEVICE REGISTRY  /  POSTGRESQL</span><h2>IoT devices</h2></div><span className={`connection-pill ${mqttStatus === 'connected' ? 'connected' : 'offline'}`}><i /> MQTT {mqttStatus.toUpperCase()}</span></div>{devices.length ? <div className="device-grid">{devices.map((device) => <article className="device-card" key={device.deviceId}><div className="device-card-header"><span className="device-card-icon"><Radio size={19} /></span><StatusBadge kind="device" value={device.deviceStatus} /></div><h3>{device.deviceName}</h3><p>{device.deviceCode}  /  {device.deviceType}</p><dl><div><dt>Canal</dt><dd>{device.canalName}</dd></div><div><dt>Water level</dt><dd>{device.readingStale ? 'STALE' : device.waterLevelPct === null ? 'NO READING' : `${device.waterLevelPct}%  /  ${device.waterLevelStatus ?? 'UNCONFIGURED'}`}</dd></div><div><dt>Gateway</dt><dd>{device.gatewayStatus}  /  {device.servoAngle === null ? 'angle unknown' : `${device.servoAngle} deg`}</dd></div><div><dt>Control mode</dt><dd>{device.controlMode}</dd></div><div><dt>Last communication</dt><dd>{formatDate(device.lastCommunication)}</dd></div></dl></article>)}</div> : <EmptyPanel title="No IoT devices registered" detail="Add a device row in PostgreSQL after applying the existing schema extensions. No device is assumed online." icon={Radio} />}</section>
+}
