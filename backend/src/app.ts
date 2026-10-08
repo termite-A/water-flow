@@ -555,10 +555,9 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
 }
 app.use(errorHandler)
 
+export default app
+if (!process.env.VERCEL) {
 const server = app.listen(port, () => {
-  console.log(`Water Flow Controller API listening on http://localhost:${port}`)
-  if (!pool) console.warn('DATABASE_URL is missing; all protected application routes are unavailable.')
-})
 
 if (pool) {
   realtime = new RealtimeHub(server, pool, async (topic, payload) => {
@@ -618,11 +617,5 @@ if (pool) {
   })
 }
 
-export async function shutdown() {
-  await new Promise<void>((resolve) => server.close(() => resolve()))
-  await realtime?.close()
-  await pool?.end()
+})
 }
-
-process.on('SIGINT', () => { void shutdown() })
-process.on('SIGTERM', () => { void shutdown() })
