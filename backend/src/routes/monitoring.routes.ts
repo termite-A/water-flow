@@ -9,7 +9,8 @@ export function createMonitoringRouter({ pool, databaseRequired, requireAdmin, g
       const result = await pool!.query(
         `SELECT d.device_id AS "deviceId", d.device_code AS "deviceCode",
                 COALESCE(d.device_name, d.device_code) AS "deviceName",
-                d.device_type AS "deviceType", c.name AS "canalName", c.barangay,
+                d.device_type AS "deviceType",
+                NULL::TEXT AS "canalName", NULL::TEXT AS barangay,
                 CASE WHEN d.last_communication IS NULL OR d.last_communication < NOW() - INTERVAL '90 seconds'
                      THEN 'OFFLINE' ELSE 'ONLINE' END AS "deviceStatus",
                 CASE WHEN d.last_communication IS NULL OR d.last_communication < NOW() - INTERVAL '90 seconds'
@@ -20,13 +21,13 @@ export function createMonitoringRouter({ pool, databaseRequired, requireAdmin, g
                 r.water_level_m::DOUBLE PRECISION AS "waterLevelM", r.water_level_status AS "waterLevelStatus",
                 r.measured_at AS "measuredAt",
                 (r.measured_at IS NULL OR r.measured_at < NOW() - INTERVAL '90 seconds') AS "readingStale"
-         FROM devices d JOIN canals c ON c.canal_id = d.canal_id
+         FROM devices d
          LEFT JOIN LATERAL (
            SELECT raw_sensor_value, water_level_pct, water_level_m, water_level_status, measured_at
            FROM water_readings WHERE device_id = d.device_id AND reading_valid = TRUE
            ORDER BY measured_at DESC LIMIT 1
          ) r ON TRUE
-         WHERE c.is_active = TRUE ORDER BY d.device_code`,
+         ORDER BY d.device_code`,
       )
       response.json({ devices: result.rows, mqttStatus: getRealtime()?.mqttStatus ?? 'not-configured' })
     } catch (error) { next(error) }
@@ -40,9 +41,9 @@ export function createMonitoringRouter({ pool, databaseRequired, requireAdmin, g
                 d.device_type AS "deviceType", d.status,
                 d.last_communication AS "lastCommunication", d.gateway_status AS "gatewayStatus",
                 d.servo_angle AS "servoAngle", d.control_mode AS "controlMode",
-                c.name AS "canalName", c.barangay
-         FROM devices d JOIN canals c ON c.canal_id = d.canal_id
-         WHERE c.is_active = TRUE ORDER BY d.device_code`,
+                NULL::TEXT AS "canalName", NULL::TEXT AS barangay
+         FROM devices d
+         ORDER BY d.device_code`,
       )
       response.json({ devices: result.rows, mqttStatus: getRealtime()?.mqttStatus ?? 'not-configured' })
     } catch (error) { next(error) }
