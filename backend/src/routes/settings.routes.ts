@@ -3,23 +3,34 @@ import { z } from 'zod'
 import type { Admin } from '../auth.js'
 import type { ApiContext } from './context.js'
 
+// Accept numbers, numeric strings, and blank values (blank = not set)
+const optionalNumber = (schema: z.ZodNumber) =>
+  z.preprocess((value) => {
+    if (value === '' || value === undefined || value === null) return null
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      return trimmed === '' ? null : Number(trimmed)
+    }
+    return value
+  }, schema.nullable())
+
 const settingsSchema = z.object({
-  rawAtLowLevel: z.number().int().min(0).max(65535).nullable(),
-  rawAtHighLevel: z.number().int().min(0).max(65535).nullable(),
-  lowMaxPct: z.number().min(0).max(100).nullable(),
-  normalMaxPct: z.number().min(0).max(100).nullable(),
-  highMaxPct: z.number().min(0).max(100).nullable(),
-  automaticOpenBelowPct: z.number().min(0).max(100).nullable(),
-  automaticCloseAbovePct: z.number().min(0).max(100).nullable(),
+  rawAtLowLevel: optionalNumber(z.number().int().min(0).max(65535)),
+  rawAtHighLevel: optionalNumber(z.number().int().min(0).max(65535)),
+  lowMaxPct: optionalNumber(z.number().min(0).max(100)),
+  normalMaxPct: optionalNumber(z.number().min(0).max(100)),
+  highMaxPct: optionalNumber(z.number().min(0).max(100)),
+  automaticOpenBelowPct: optionalNumber(z.number().min(0).max(100)),
+  automaticCloseAbovePct: optionalNumber(z.number().min(0).max(100)),
 }).refine((settings) => {
   const values = [settings.lowMaxPct, settings.normalMaxPct, settings.highMaxPct]
   return values.every((value) => value === null) ||
     (values.every((value) => value !== null) && settings.lowMaxPct! < settings.normalMaxPct! && settings.normalMaxPct! < settings.highMaxPct!)
-}, 'Set all three level thresholds in increasing order, or clear all three.').refine((settings) =>
+}, 'Set all three level thresholds in increasing order (LOW < NORMAL < HIGH), or clear all three.').refine((settings) =>
   (settings.automaticOpenBelowPct === null && settings.automaticCloseAbovePct === null) ||
   (settings.automaticOpenBelowPct !== null && settings.automaticCloseAbovePct !== null &&
     settings.automaticOpenBelowPct < settings.automaticCloseAbovePct),
-'Set both automatic-control thresholds in increasing order, or clear both.')
+'Set both automatic-control thresholds (open below < close above), or clear both.')
 
 export function createSettingsRouter({ pool, databaseRequired, requireAdmin, requireSameOrigin, logEvent, getRealtime }: ApiContext) {
   const router = Router()
@@ -43,7 +54,13 @@ export function createSettingsRouter({ pool, databaseRequired, requireAdmin, req
   router.put('/:deviceCode', databaseRequired, requireAdmin, requireSameOrigin, async (request, response, next) => {
     const parsed = settingsSchema.safeParse(request.body)
     if (!parsed.success) {
-      response.status(400).json({ error: 'Invalid level configuration.', details: parsed.error.flatten().fieldErrors })
+      const issue = parsed.error.issues[0]
+      const field = issue?.path.map(String).join('.')
+      const reason = issue ? `${field ? field + ': ' : ''}${issue.message}` : 'check the values'
+      response.status(400).json({
+        error: `Invalid level configuration: ${reason}`,
+        details: parsed.error.flatten().fieldErrors,
+      })
       return
     }
     const settings = parsed.data
